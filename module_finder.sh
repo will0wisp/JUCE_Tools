@@ -2,8 +2,7 @@
 #A script to find which juce modules you need to include for a given JUCE class you are using.
 
 #CONFIG -- Replace JUCE_MODULES_PATH with the file path to your JUCE modules directory.
-JUCE_MODULES_PATH='JUCE/modules'
-
+JUCE_MODULES_PATH="$(dirname $0)/../../JUCE/modules"
 
 #NOTE: This may not work for all classes. I have not tried them all.
 
@@ -20,18 +19,18 @@ else
 
         #FOUND_CLASS stores the first line found that has the desired class name in it. 
         FOUND_LINE=$(grep -R $CLASS_NAME $JUCE_MODULES_PATH | grep "juce_"$CLASS_NAME | head -n 1)
-        #HACK: this is a janky hack. if there is no juce_CLASSNAME, we just look for the CLASSNAME.
+        #HACK: this is a bit of a hack. if there is no juce_CLASSNAME, we just look for the CLASSNAME. We do this because some class names are prefixed with "juce_", and some are not.
         if [ -z "$FOUND_LINE" ]
         then
             FOUND_LINE=$(grep -R $CLASS_NAME $JUCE_MODULES_PATH | grep $CLASS_NAME | head -n 1)
         fi
-        #This SED command parses the line for something like '/MODULE_NAME/CLASSNAME' or '"MODULENAME"/CLASSNAME'), 
+        #This PERL command parses the line for something like '/MODULE_NAME/CLASS_NAME' or '"MODULE_NAME"/CLASS_NAME'),
         #and extracts the module name
-        SED_COMMAND='s/.*[/"]([a-zA-Z]*)\/(juce_)?'
-        SED_COMMAND+=$CLASS_NAME
-        SED_COMMAND+='.*/\1/'
+        PERL_COMMAND='s|.*JUCE\/modules\/(.+?)\/.+(juce_)?'
+        PERL_COMMAND+=$CLASS_NAME
+        PERL_COMMAND+='.*|\1|'
 
-        MODULE=$(echo $FOUND_LINE | sed -rE $SED_COMMAND)
+        MODULE=$(echo $FOUND_LINE | perl -pe $PERL_COMMAND)
 
         if [ -z "$MODULE" ]
         then
